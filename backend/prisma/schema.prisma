@@ -1,0 +1,148 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  name              String
+  password          String
+  role              Role           @default(USER)
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  orders       Order[]
+  cartItems    CartItem[]
+  wishlistItems WishlistItem[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Product {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  category      String
+  subcategory   String
+  price         Decimal   @db.Decimal(10, 2)
+  originalPrice Decimal?  @db.Decimal(10, 2)
+  stock         Int       @default(0)
+  rating        Float     @default(0)
+  reviewCount   Int       @default(0)
+  description   String
+  details       String[]
+  images        String[]
+  tags          String[]
+  featured      Boolean   @default(false)
+  bestseller    Boolean   @default(false)
+  newArrival    Boolean   @default(false)
+  unit          String
+  origin        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([category])
+  @@index([slug])
+  @@index([featured])
+  @@index([bestseller])
+  @@index([newArrival])
+  @@map("products")
+}
+
+model Category {
+  id      String @id @default(uuid())
+  name    String
+  slug    String @unique
+  image   String
+  count   Int    @default(0)
+  tagline String
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  userId          String
+  date            DateTime    @default(now())
+  status          OrderStatus @default(PROCESSING)
+  subtotal        Decimal     @db.Decimal(10, 2)
+  shipping        Decimal     @db.Decimal(10, 2)
+  tax             Decimal     @db.Decimal(10, 2)
+  total           Decimal     @db.Decimal(10, 2)
+  shippingAddress Json
+  paymentLast4    String
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  name      String
+  qty       Int
+  price     Decimal @db.Decimal(10, 2)
+  image     String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model CartItem {
+  id        String @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id        String @id @default(uuid())
+  userId    String
+  productId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("wishlist_items")
+}

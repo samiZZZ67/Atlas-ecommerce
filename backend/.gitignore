@@ -1,0 +1,6 @@
+node_modules/
+dist/
+src/logs/*.log
+.env
+uploads/
+*.js.map
